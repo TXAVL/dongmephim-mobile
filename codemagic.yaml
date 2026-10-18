@@ -8,7 +8,7 @@ workflows:
         - txa
       vars:
         PACKAGE_NAME: "DongMePhim-Premium"
-        REPO_ID: "TXAVLOG/dongmephim-mobile"
+        REPO_ID: "TXAVL/dongmephim-mobile"
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -109,7 +109,7 @@ workflows:
         - txa
       vars:
         PACKAGE_NAME: "DongMePhim-Premium"
-        REPO_ID: "TXAVLOG/dongmephim-mobile"
+        REPO_ID: "TXAVL/dongmephim-mobile"
       flutter: stable
       xcode: latest
       cocoapods: default
