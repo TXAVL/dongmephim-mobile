@@ -66,8 +66,8 @@ class TxaNotificationManager {
       }
     }
 
-    // Start periodic polling every 2 minutes while app is in foreground
-    _timer = Timer.periodic(const Duration(minutes: 2), (timer) {
+    // Start periodic polling every 5 minutes while app is in foreground
+    _timer = Timer.periodic(const Duration(minutes: 5), (timer) {
       _pollNotifications();
       checkBackgroundUpdates();
     });

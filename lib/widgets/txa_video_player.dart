@@ -955,7 +955,9 @@ class _TxaVideoPlayerState extends State<TxaVideoPlayer> with WidgetsBindingObse
     }
   }
 
-  void _saveWatchProgress() async {
+  DateTime? _lastServerSyncAt;
+
+  void _saveWatchProgress({bool forceServer = false}) async {
     final auth = TxaAuthService();
     if (widget.movieId.isEmpty) return;
 
@@ -973,7 +975,13 @@ class _TxaVideoPlayerState extends State<TxaVideoPlayer> with WidgetsBindingObse
       );
 
       // 2. Nếu đã đăng nhập, gửi API lên máy chủ để tính giờ xem & đồng bộ CSDL
-      if (auth.isLoggedIn) {
+      // Giảm tải server: chỉ đồng bộ lên máy chủ mỗi 60 giây (tiến độ cục bộ vẫn lưu mỗi 10 giây)
+      final nowSync = DateTime.now();
+      final dueServer = forceServer ||
+          _lastServerSyncAt == null ||
+          nowSync.difference(_lastServerSyncAt!).inSeconds >= 60;
+      if (auth.isLoggedIn && dueServer) {
+        _lastServerSyncAt = nowSync;
         final success = await TxaApi().updateWatchHistory(
           widget.movieId,
           _currentEpisodeId,
