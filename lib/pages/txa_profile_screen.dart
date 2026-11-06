@@ -2627,8 +2627,36 @@ class _TxaProfileScreenState extends State<TxaProfileScreen> {
   }
 
   Widget _buildVIPCard(Map<String, dynamic> user) {
-    final isVIP = (user['package'] ?? 'free').toString().toLowerCase() != 'free';
-    final packageName = isVIP ? (user['package_title'] ?? 'MEMBER VIP').toString().toUpperCase() : 'FREE ACCOUNT';
+    final role = (user['role'] ?? 'user').toString().toLowerCase();
+    final rawPkg = (user['package'] ?? 'free').toString().toLowerCase();
+    final isVIP = role == 'admin' || role == 'superadmin' || (rawPkg.isNotEmpty && rawPkg != 'free');
+
+    String resolvedPkgTitle = (user['package_title'] ?? '').toString().trim();
+    if (resolvedPkgTitle.isEmpty || resolvedPkgTitle.toLowerCase() == rawPkg) {
+      final pkgsList = (_packagesData?['packages'] as List<dynamic>?) ?? [];
+      final matched = pkgsList.firstWhere(
+        (p) => (p['id'] ?? '').toString().toLowerCase() == rawPkg ||
+               (p['title'] ?? '').toString().toLowerCase() == rawPkg,
+        orElse: () => null,
+      );
+      if (matched != null && matched['title'] != null) {
+        resolvedPkgTitle = matched['title'].toString();
+      } else if (rawPkg == 'txa_p3_28062026_0006' || rawPkg.contains('txa_p3') || rawPkg == 'dongphims') {
+        resolvedPkgTitle = 'DongPhimS';
+      } else if (rawPkg == 'txa_p2_28062026_0005' || rawPkg.contains('txa_p2') || rawPkg == 'vip') {
+        resolvedPkgTitle = 'Gói VIP';
+      } else if (rawPkg == 'txa_p1_28062026_0004' || rawPkg.contains('txa_p1')) {
+        resolvedPkgTitle = 'Gói Tiêu Chuẩn (Standard)';
+      } else if (rawPkg == 'custom_icon' || rawPkg.contains('icon')) {
+        resolvedPkgTitle = 'Gói Đổi Icon App';
+      } else if (role == 'admin' || role == 'superadmin') {
+        resolvedPkgTitle = 'DongPhimS (Admin VIP)';
+      } else {
+        resolvedPkgTitle = 'MEMBER VIP';
+      }
+    }
+
+    final packageName = isVIP ? resolvedPkgTitle.toUpperCase() : 'FREE ACCOUNT';
     final expiryStr = user['expiry_date'] ?? user['expiryDate'];
     
     String? formattedExpiry;
@@ -2768,8 +2796,16 @@ class _TxaProfileScreenState extends State<TxaProfileScreen> {
 
     // Check package ID and verify expiry date if package is standalone custom_icon or VIP
     final pkg = (user['package'] ?? 'free').toString().toLowerCase();
+    final pkgTitle = (user['package_title'] ?? '').toString().toLowerCase();
     final expiryStr = user['expiry_date'] ?? user['expiryDate'];
-    if (pkg == 'custom_icon' || pkg.contains('icon') || pkg == 'vip' || pkg == 'dongphims') {
+    if (pkg == 'custom_icon' ||
+        pkg.contains('icon') ||
+        pkg == 'vip' ||
+        pkg == 'dongphims' ||
+        pkg == 'txa_p3_28062026_0006' ||
+        pkg.contains('txa_p3') ||
+        pkgTitle.contains('dongphims') ||
+        pkgTitle.contains('icon')) {
       if (expiryStr != null && expiryStr.toString().isNotEmpty) {
         final dt = DateTime.tryParse(expiryStr.toString());
         if (dt != null && dt.isBefore(DateTime.now())) {

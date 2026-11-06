@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'txa_api.dart';
+import 'txa_ads_service.dart';
 import 'txa_language.dart';
 import 'txa_persistent_auth_vault.dart';
 import 'txa_dynamic_icon_service.dart';
@@ -155,6 +156,7 @@ class TxaAuthService extends ChangeNotifier {
               );
             }
             TxaApi.clearCache();
+            TxaAdsService.instance.clearCache();
             TxaLogger.log('Login successful for $identity', type: 'auth');
             await runIconCheck();
             notifyListeners();
@@ -242,6 +244,7 @@ class TxaAuthService extends ChangeNotifier {
       );
     }
     TxaApi.clearCache();
+    TxaAdsService.instance.clearCache();
     TxaLogger.log('Auth session manually set for ${userData['username'] ?? userData['email']}', type: 'auth');
     await runIconCheck();
     notifyListeners();
@@ -281,6 +284,7 @@ class TxaAuthService extends ChangeNotifier {
       _token = null;
       _user = null;
       TxaApi.clearCache();
+      TxaAdsService.instance.clearCache();
       TxaLogger.log('Logged out successfully', type: 'auth');
       await runIconCheck();
       notifyListeners();

@@ -98,7 +98,15 @@ class _TxaCustomIconScreenState extends State<TxaCustomIconScreen> {
       return true;
     }
     final pkg = (user['package'] ?? 'free').toString().toLowerCase();
-    if (pkg == 'custom_icon' || pkg.contains('icon') || pkg == 'vip' || pkg == 'dongphims') {
+    final pkgTitle = (user['package_title'] ?? '').toString().toLowerCase();
+    if (pkg == 'custom_icon' ||
+        pkg.contains('icon') ||
+        pkg == 'vip' ||
+        pkg == 'dongphims' ||
+        pkg == 'txa_p3_28062026_0006' ||
+        pkg.contains('txa_p3') ||
+        pkgTitle.contains('dongphims') ||
+        pkgTitle.contains('icon')) {
       final expiryStr = user['expiry_date'] ?? user['expiryDate'];
       if (expiryStr != null && expiryStr.toString().isNotEmpty) {
         final dt = DateTime.tryParse(expiryStr.toString());

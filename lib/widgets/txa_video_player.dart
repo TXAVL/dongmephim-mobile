@@ -127,9 +127,12 @@ class _TxaVideoPlayerState extends State<TxaVideoPlayer> with WidgetsBindingObse
     }
 
     final authUser = auth.user!;
+    final role = (authUser['role'] ?? 'user').toString().toLowerCase();
+    if (role == 'admin' || role == 'superadmin') return true;
+    if (authUser['bypass_ads'] == true) return true;
+
     final userPackage = (authUser['package'] ?? 'free').toString().toLowerCase();
-    if (userPackage != 'free') return true;
-    if (authUser['role'] == 'admin' || authUser['role'] == 'superadmin') return true;
+    if (userPackage.isNotEmpty && userPackage != 'free') return true;
 
     final plan = widget.userPlan.trim().toLowerCase();
     return plan.isNotEmpty && plan != 'free';

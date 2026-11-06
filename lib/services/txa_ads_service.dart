@@ -42,6 +42,10 @@ class TxaAdsService {
   bool _appStartAdShown = false;
   Map<String, dynamic>? _adSettings;
 
+  void clearCache() {
+    _adSettings = null;
+  }
+
   TxaAdFreeConfig get adFreeConfig {
     final pass = _adSettings?['ad_free_pass'];
     if (pass is Map<String, dynamic>) {
@@ -90,7 +94,7 @@ class TxaAdsService {
     return const AdRequest();
   }
 
-  /// Check if the current logged-in user should bypass ads (VIP subscriber with bypass_ads permission or active 24h pass)
+  /// Check if the current logged-in user should bypass ads (Admin, VIP subscriber with bypass_ads permission, or active 24h pass)
   Future<bool> shouldBypassAds() async {
     try {
       if (TxaAdFreeService.instance.isAdFreeActive) {
@@ -103,8 +107,44 @@ class TxaAdsService {
     if (!auth.isLoggedIn || auth.user == null) return false;
 
     final user = auth.user!;
+    final role = (user['role'] ?? 'user').toString().toLowerCase();
+    if (role == 'admin' || role == 'superadmin') {
+      return true;
+    }
+
+    // Check package expiry if present
+    final expiryStr = user['expiry_date'] ?? user['expiryDate'];
+    if (expiryStr != null && expiryStr.toString().isNotEmpty) {
+      final dt = DateTime.tryParse(expiryStr.toString());
+      if (dt != null && dt.isBefore(DateTime.now())) {
+        return false;
+      }
+    }
+
+    if (user['bypass_ads'] == true) {
+      return true;
+    }
+    final perms = user['permissions'];
+    if (perms is Map && perms['bypass_ads'] == true) {
+      return true;
+    }
+
     final userPkgId = (user['package'] ?? 'free').toString().toLowerCase();
-    if (userPkgId == 'free') return false;
+    final userPkgTitle = (user['package_title'] ?? '').toString().toLowerCase();
+    if (userPkgId == 'free' || userPkgId.isEmpty) return false;
+
+    // Fast-path for known ad-free VIP packages (even if getPackages() network call fails)
+    if (userPkgId == 'txa_p3_28062026_0006' ||
+        userPkgId == 'txa_p2_28062026_0005' ||
+        userPkgId.contains('txa_p3') ||
+        userPkgId.contains('txa_p2') ||
+        userPkgId == 'dongphims' ||
+        userPkgId == 'vip' ||
+        userPkgId == 'bypass_zalo' ||
+        userPkgTitle.contains('dongphims') ||
+        userPkgTitle.contains('vip')) {
+      return true;
+    }
 
     try {
       final pkgsRes = await TxaApi().getPackages();
