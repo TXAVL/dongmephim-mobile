@@ -16,6 +16,7 @@ import '../utils/txa_toast.dart';
 import 'txa_log_viewer_screen.dart';
 import 'txa_notification_screen.dart';
 import 'txa_movie_detail_screen.dart';
+import 'txa_category_list_screen.dart';
 import 'txa_search_tab.dart';
 import 'txa_profile_screen.dart';
 import 'txa_schedule_tab.dart';
@@ -249,6 +250,7 @@ class _HomeTabState extends State<HomeTab> {
           final rawAnimeList = getList(data['TXA_HH1']);
           final rawSeriesList = getList(data['TXA_PB1']);
           final rawSingleList = getList(data['TXA_PL1']);
+          final rawChineseList = getList(data['TXA_CN1']);
           final rawTheaterList = getList(data['TXA_CR1']);
           final rawTvShowsList = getList(data['TXA_TV1']);
 
@@ -315,16 +317,18 @@ class _HomeTabState extends State<HomeTab> {
           final theaterList = filterByCountry(rawTheaterList);
           final tvShowsList = filterByCountry(rawTvShowsList);
 
-          // Build Chinese Masterpieces
+          // Build Chinese Masterpieces (use server TXA_CN1 when available, otherwise rank dynamically)
           final allMovies = <dynamic>{
-            ...rawNewMovies, ...rawHotMovies, ...rawAnimeList, ...rawSeriesList, ...rawSingleList, ...rawTheaterList, ...rawTvShowsList
+            ...rawNewMovies, ...rawHotMovies, ...rawAnimeList, ...rawSeriesList, ...rawSingleList, ...rawChineseList, ...rawTheaterList, ...rawTvShowsList
           }.toList();
           final allCountryFilteredMovies = filterByCountry(allMovies);
-          final chineseMovies = allMovies.where((m) {
-            final text = extractCountryString(m);
-            return text.contains('trung') || text.contains('china');
-          }).toList();
-          final sortedChineseMovies = TxaMovieRanker.sortMovies(chineseMovies).take(15).toList();
+          final chinesePool = rawChineseList.isNotEmpty
+              ? filterByCountry(rawChineseList)
+              : allCountryFilteredMovies.where((m) {
+                  final text = extractCountryString(m);
+                  return text.contains('trung') || text.contains('china');
+                }).toList();
+          final sortedChineseMovies = TxaMovieRanker.sortMovies(chinesePool).take(40).toList();
 
           final bool isAnyShelfNotEmpty = newMovies.isNotEmpty ||
               hotMovies.isNotEmpty ||
@@ -584,9 +588,9 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                           ),
                   )
-              else
+              else ...[
                 SliverPadding(
-                  padding: const EdgeInsets.only(left: 14, right: 14, top: 12, bottom: 100),
+                  padding: const EdgeInsets.only(left: 14, right: 14, top: 12, bottom: 20),
                   sliver: selectedCategoryMovies.isEmpty
                       ? SliverToBoxAdapter(
                           child: Padding(
@@ -615,6 +619,37 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                         ),
                 ),
+                if (selectedCategoryMovies.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 24, right: 24, bottom: 110),
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (ctx) => CategoryListScreen(
+                                title: TxaLanguage.t(_selectedCategoryKey == 'TXA_CN1' ? 'txa_category_chinese_masterpieces' : _selectedCategoryKey),
+                                type: _selectedCategoryKey,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.grid_view_rounded, size: 16, color: TxaTheme.accent),
+                        label: Text(
+                          TxaLanguage.t('see_all'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: TxaTheme.accent.withValues(alpha: 0.45)),
+                          backgroundColor: TxaTheme.secondaryBg.withValues(alpha: 0.7),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ],
           );
         },
@@ -794,6 +829,7 @@ class _HomeTabState extends State<HomeTab> {
       {'key': 'TXA_PB1', 'label': TxaLanguage.t('TXA_PB1')},
       {'key': 'TXA_PL1', 'label': TxaLanguage.t('TXA_PL1')},
       {'key': 'TXA_HH1', 'label': TxaLanguage.t('TXA_HH1')},
+      {'key': 'TXA_CN1', 'label': TxaLanguage.t('txa_category_chinese_masterpieces')},
       {'key': 'TXA_CR1', 'label': TxaLanguage.t('TXA_CR1')},
       {'key': 'TXA_TV1', 'label': TxaLanguage.t('TXA_TV1')},
     ];
@@ -926,9 +962,15 @@ class _HomeTabState extends State<HomeTab> {
               ),
               GestureDetector(
                 onTap: () {
-                  setState(() {
-                    _selectedCategoryKey = typeKey;
-                  });
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (ctx) => CategoryListScreen(
+                        title: title,
+                        type: typeKey,
+                      ),
+                    ),
+                  );
                 },
                 child: Row(
                   children: [
@@ -1255,9 +1297,10 @@ class _HomeTabState extends State<HomeTab> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: TxaTheme.textPrimary,
                   fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                   height: 1.25,
                 ),
               ),
@@ -1495,16 +1538,17 @@ class _HomeTabState extends State<HomeTab> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              color: Colors.white,
+              color: TxaTheme.textPrimary,
               fontSize: 12.5,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
             ),
           ),
           Text(
             movie['origin_name'] ?? '',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: TxaTheme.textSecondary, fontSize: 9.5),
+            style: const TextStyle(color: TxaTheme.textSecondary, fontSize: 10, fontWeight: FontWeight.w500),
           ),
         ],
       ),
